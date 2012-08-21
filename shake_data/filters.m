@@ -34,7 +34,7 @@ axis([0 2*lb 0 1]);
 legend('\Theta','\sigma = 0.25','\sigma = 0.5','\sigma = 1','\sigma = 2','\sigma = 4','\sigma = 8');
 xlabel('Frequency (Hz)');
 title('Filters, Frequency Domain');
-saveas(gcf,[plot_dir 'freq_filt.pdf']);
+%saveas(gcf,[plot_dir 'freq_filt.pdf']);
 
 
 i0 = ifft(cdf0,L);
@@ -59,7 +59,7 @@ axis([0 8 -0.001 0.001]);
 legend('\Theta','\sigma = 0.25','\sigma = 0.5','\sigma = 1','\sigma = 2','\sigma = 4','\sigma = 8');
 xlabel('Time (s)');
 title('Filters, Time Domain');
-saveas(gcf,[plot_dir 'time_filt.pdf']);
+%saveas(gcf,[plot_dir 'time_filt.pdf']);
 
 
 
@@ -104,7 +104,7 @@ axis([0 200 -15 -2]);
 legend('\Theta','\sigma = 0.25','\sigma = 0.5','\sigma = 1','\sigma = 2','\sigma = 4','\sigma = 8');
 xlabel('Frequency (Hz)');
 title('FEE Backhoe, XCS Y Channel, Frequency Domain, With Filter');
-saveas(gcf,[plot_dir 'sig_wfreq_filt.pdf']);
+%saveas(gcf,[plot_dir 'sig_wfreq_filt.pdf']);
 
 
 tf0 = ifft(f0,L);
@@ -129,7 +129,7 @@ legend('No filter',[num2str(lb) ' Hz filter']);
 xlabel('Time (s)');
 ylabel('Acceleration (g)');
 title('FEE Backhoe, XCS Y Channel, Time Domain Acceleration');
-saveas(gcf,[plot_dir 'acc_filt.pdf']);
+%saveas(gcf,[plot_dir 'acc_filt.pdf']);
 
 VD = cumsum(9.8*(TD-mean(TD)))*1/FS;
 figure;
@@ -164,7 +164,7 @@ xlabel('Time (s)');
 ylabel('Velocity (m/s)');
 %title(['Time domain velocity with ' num2str(lb) ' Hz high pass filter']);
 title('FEE Backhoe, XCS Y Channel, Time Domain Velocity');
-saveas(gcf,[plot_dir 'vel_filt.pdf']);
+%saveas(gcf,[plot_dir 'vel_filt.pdf']);
 
 
 DD = cumsum(VD)*1/FS;
@@ -172,7 +172,7 @@ figure;
 plot(t,DD);
 xlabel('Time (s)');ylabel('Displacement (m)');
 title(['Time domain displacement with no filter']);
-saveas(gcf,[plot_dir 'dis_nofilt.pdf']);
+%saveas(gcf,[plot_dir 'dis_nofilt.pdf']);
 
 %title('FEE Backhoe, XCS Y Channel, Time Domain');
 
@@ -200,7 +200,7 @@ plot(t,df3-mean(df3));
 xlabel('Time (s)');
 ylabel('Displacement (m)');
 title(['Time domain displacement with ' num2str(lb) ' Hz high pass filter']);
-saveas(gcf,[plot_dir 'dis_wfilt.pdf']);
+%saveas(gcf,[plot_dir 'dis_wfilt.pdf']);
 
 
 

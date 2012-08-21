@@ -1,4 +1,6 @@
 clear all;
+plot_dir = '~/Desktop/plots/shake_data/';
+
 
 chan_list{1} = 'LODCM BEAM X';
 chan_list{2} = 'LODCM BEAM Y';
@@ -61,16 +63,30 @@ set_handle{18} = 'BG4';
 set_handle{19} = 'jump';
 
 STD_table = zeros(19,9);
+V_STD_tab = zeros(19,9);
+D_STD_tab = zeros(19,9);
 
 x = load('BG17.mat');
 
-ts = 1/512;
+%Filter Stuff
+L = 4096;
+FS = 512;
+T = 1/FS;
+df = FS/L;
+lb = 10;
+
+f = (FS-df)*linspace(0,1,L);
+t = (0:L-1)*T;
+[m, low_pass] = min(abs(f-lb));
+[m, high_pass] = min(abs(f-(FS-lb)));
+
+cdf3 = (erf((f-lb)/1.00)+erf((-f+FS-lb)/1.00))/2;
 
 %Load Data
 for f=1:length(set_list)
     cd(['~/Desktop/shake data/XCS_start_0840.aps/mat/MAT' num2str(f) '/']);
-    if ~exist(['../plots/' set_handle{f} '/'],'dir');
-        mkdir(['../plots/' set_handle{f} '/']);
+    if ~exist([plot_dir set_handle{f} '/'],'dir');
+        mkdir([plot_dir set_handle{f} '/']);
     end
     
     n_files = length(dir('DPsv*'));
@@ -78,6 +94,10 @@ for f=1:length(set_list)
     
     BG_PS = zeros(1601,2,n_files,n_chan);
     BG_TS = zeros(4096,2,n_files,n_chan);
+    PS_FT = zeros(4096,n_files,n_chan);
+    FILTR = zeros(4096,n_files,n_chan);
+    FIFFT = zeros(4096,n_files,n_chan);
+    
     BGAVG = zeros(1601,n_chan);
 
     TS_STD = zeros(n_files,n_chan);
@@ -114,14 +134,30 @@ for f=1:length(set_list)
     for i=1:n_files
         for j=1:n_chan
             
-            TS_STD(i,j) = std(BG_TS(:,2,i,j));
-            TS_AVG(i,j) = mean(BG_TS(:,2,i,j));
-            TS_RMS(i,j) = sqrt(sum(BG_TS(:,2,i,j).*BG_TS(:,2,i,j))/4096);
-            TS_MIN(i,j) = min(BG_TS(:,2,i,j));
-            TS_MAX(i,j) = max(BG_TS(:,2,i,j));
+            %Create new power spectrum
+            PS_FT(:,i,j)= fft(BG_TS(:,2,i,j),L);
             
-            VEL = cumtrapz(9.8*(BG_TS(:,2,i,j)-TS_AVG(i,j))) * ts;
-            %VEL = [0; oVEL(1:4095)];
+            %Apply filter
+            FILTR(:,i,j)= cdf3.*(PS_FT(:,i,j)');
+            
+            %IFFT to get high freq time domain
+            FIFFT(:,i,j)= ifft(FILTR(:,i,j),L);
+            
+            TS_STD(i,j) = std(FIFFT(:,i,j));
+            TS_AVG(i,j) = mean(FIFFT(:,i,j));
+            TS_RMS(i,j) = sqrt(sum(FIFFT(:,i,j).*FIFFT(:,i,j))/4096);
+            TS_MIN(i,j) = min(FIFFT(:,i,j));
+            TS_MAX(i,j) = max(FIFFT(:,i,j));
+            
+%             TS_STD(i,j) = std(BG_TS(:,2,i,j));
+%             TS_AVG(i,j) = mean(BG_TS(:,2,i,j));
+%             TS_RMS(i,j) = sqrt(sum(BG_TS(:,2,i,j).*BG_TS(:,2,i,j))/4096);
+%             TS_MIN(i,j) = min(BG_TS(:,2,i,j));
+%             TS_MAX(i,j) = max(BG_TS(:,2,i,j));
+            
+            
+            %VEL = cumtrapz(9.8*(BG_TS(:,2,i,j)-TS_AVG(i,j))) * ts;
+            VEL = cumtrapz(9.8*(FIFFT(:,i,j)-TS_AVG(i,j))) * T;
             
             VEL_STD(i,j) = std(VEL);
             VEL_AVG(i,j) = mean(VEL);
@@ -129,7 +165,7 @@ for f=1:length(set_list)
             VEL_MIN(i,j) = min(VEL);
             VEL_MAX(i,j) = max(VEL);
             
-            ACC = cumsum(VEL) * ts;
+            ACC = cumtrapz(VEL) * T;
             
             ACC_STD(i,j) = std(ACC);
             ACC_AVG(i,j) = mean(ACC);
@@ -137,8 +173,7 @@ for f=1:length(set_list)
             ACC_MIN(i,j) = min(ACC);
             ACC_MAX(i,j) = max(ACC);
             
-            DIS = cumtrapz((VEL-VEL_AVG(i,j))) * ts;
-            %DIS = [0; oDIS(1:4095)];
+            DIS = cumtrapz((VEL-VEL_AVG(i,j))) * T;
             
             DIS_STD(i,j) = std(DIS);
             DIS_AVG(i,j) = mean(DIS);
@@ -156,7 +191,9 @@ for f=1:length(set_list)
                 'VEL_STD','VEL_AVG','VEL_RMS','VEL_MIN','VEL_MAX','ACC_STD','ACC_AVG','ACC_RMS','ACC_MIN','ACC_MAX',...
                 'DIS_STD','DIS_AVG','DIS_RMS','DIS_MIN','DIS_MAX');
             
-            plot(BG_TS(:,1,i,j),BG_TS(:,2,i,j),':');
+            %plot(BG_TS(:,1,i,j),BG_TS(:,2,i,j),':');
+            plot(BG_TS(:,1,i,j),FIFFT(:,i,j),':');
+
             xlabel('Time (s)');
             ylabel('Acceleration (g)');
             title([chan_list{j} ' sample for ' set_list{f}]);
@@ -166,7 +203,7 @@ for f=1:length(set_list)
             str1(3) = {['Sample RMS: ' num2str(TS_RMS(i,j),'%10.4e')]};
             text(0.5,v(3) + (v(4) -  v(3))/5, str1, 'FontSize', 18);
             
-            saveas(gcf,['../plots/' set_handle{f} '/TS_' chan_handle{j} '_' num2str(i) '.pdf']);
+            saveas(gcf,[plot_dir set_handle{f} '/TS_' chan_handle{j} '_' num2str(i) '.pdf']);
             
             plot(BG_TS(:,1,i,j),VEL,':');
             xlabel('Time (s)');
@@ -178,7 +215,7 @@ for f=1:length(set_list)
             str1(3) = {['Sample RMS: ' num2str(VEL_RMS(i,j),'%10.4e')]};
             text(0.5,v(3) + (v(4) -  v(3))/5, str1, 'FontSize', 18);
             
-            saveas(gcf,['../plots/' set_handle{f} '/VEL_' chan_handle{j} '_' num2str(i) '.pdf']);
+            saveas(gcf,[plot_dir set_handle{f} '/VEL_' chan_handle{j} '_' num2str(i) '.pdf']);
 
             plot(BG_TS(:,1,i,j),ACC,':');
             xlabel('Time (s)');
@@ -202,7 +239,7 @@ for f=1:length(set_list)
             str1(3) = {['Sample RMS: ' num2str(DIS_RMS(i,j),'%10.4e')]};
             text(0.5,v(3) + (v(4) -  v(3))/5, str1, 'FontSize', 18);
                         
-            saveas(gcf,['../plots/' set_handle{f} '/STEP_' chan_handle{j} '_' num2str(i) '.pdf']);
+            saveas(gcf,[plot_dir set_handle{f} '/DIS_' chan_handle{j} '_' num2str(i) '.pdf']);
             
         end
     end
